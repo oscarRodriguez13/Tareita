@@ -5,6 +5,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.location.Address
 import android.location.Geocoder
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -60,7 +61,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             if (addressString.isNotEmpty()) {
                 try {
                     if (mMap != null && mGeocoder != null) {
-                        val addresses = mGeocoder!!.getFromLocationName(addressString, 2)
+                        val addresses: List<Address>? = mGeocoder!!.getFromLocationName(
+                            addressString, 2, Datos.lowerLeftLatitude, Datos.lowerLeftLongitude, Datos.upperRightLatitude, Datos.upperRightLongitude)
+                        //val addresses = mGeocoder!!.getFromLocationName(addressString, 2)
                         if (addresses != null && addresses.isNotEmpty()) {
                             val addressResult = addresses[0]
                             val position = LatLng(addressResult.latitude, addressResult.longitude)
@@ -70,7 +73,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                     .title("Marker in busqueda")
                             )
 
+                            mMap!!.moveCamera(CameraUpdateFactory.newLatLng(position))
+
                         }
+
                     } else {
                         Toast.makeText(this, "Dirección no encontrada", Toast.LENGTH_SHORT)
                             .show()
@@ -142,5 +148,30 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 .snippet("Alma Matter")
         )
 
+        mMap!!.setOnMapLongClickListener { latLng ->
+            mMap!!.clear()
+            val nombreLugar = geoCoderSearchLatLang(latLng)
+
+            mMap!!.addMarker(
+                MarkerOptions().position(latLng)
+                    .title(nombreLugar)
+                    .snippet("Coordenadas: $latLng")
+            )
+        }
+
+    }
+
+    private fun geoCoderSearchLatLang(latLng: LatLng): String {
+
+        val direcciones = mGeocoder!!.getFromLocation(latLng.latitude, latLng.longitude, 1)
+        if (direcciones!!.isNotEmpty()) {
+            val direccion = direcciones[0]
+            val stringBuilder = StringBuilder()
+            for (i in 0 until direccion.maxAddressLineIndex) {
+                stringBuilder.append(direccion.getAddressLine(i)).append("\n")
+            }
+            return stringBuilder.toString()
+        }
+        return "Lugar Desconocido"
     }
 }
